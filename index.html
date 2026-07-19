@@ -7,6 +7,8 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --ink: #F4FAF6;
@@ -422,7 +424,7 @@
   <button class="info-btn" onclick="openInfo()" aria-label="What is backup for?">?</button>
 </div>
 
-<main id="cards"></main>
+<main id="cards"><div class="empty"><p class="big">Loading your plants…</p></div></main>
 
 <div id="fab" onclick="openForm()">+</div>
 
@@ -470,16 +472,34 @@
 </div>
 
 <script>
-const STORAGE_KEY = 'greenhouse-log-plants';
+// ── Firebase setup ───────────────────────────────────────────────
+// 1. Create a free project at https://console.firebase.google.com
+// 2. Enable "Realtime Database" (not Firestore) and set its rules to
+//    { "rules": { ".read": true, ".write": true } }
+// 3. Register a Web App in your project settings and paste its config below.
+const firebaseConfig = {
+  apiKey: "AIzaSyCXsmlaa6IfI7hLcC1mqnp3ShXEs-qVNy4",
+  authDomain: "plant-watering-tracker-99608.firebaseapp.com",
+  databaseURL: "https://plant-watering-tracker-99608-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "plant-watering-tracker-99608",storageBucket: "plant-watering-tracker-99608.firebasestorage.app",
+  messagingSenderId: "832272444550",
+  appId: "1:832272444550:web:de3ba19889870a9687f507"
+};
+
+firebase.initializeApp(firebaseConfig);
+const plantsRef = firebase.database().ref('plants');
+
+// In-memory cache, kept in sync with the shared cloud database.
+// Every function below still just calls loadPlants()/savePlants() like before,
+// so the rest of the app didn't need to change.
+let plants = [];
 
 function loadPlants(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }catch(e){ return []; }
+  return plants;
 }
-function savePlants(plants){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(plants));
+function savePlants(newPlants){
+  plants = newPlants;
+  plantsRef.set(newPlants);
 }
 function uid(){
   return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -728,31 +748,40 @@ document.getElementById('infoOverlay').addEventListener('click', function(e){
   if (e.target === this) closeInfo();
 });
 
-// Seed with a couple of example plants on first ever load, so the page isn't empty.
-if (localStorage.getItem(STORAGE_KEY) === null){
-  const seedDate1 = new Date(); seedDate1.setDate(seedDate1.getDate() - 6);
-  const seedDate2 = new Date(); seedDate2.setDate(seedDate2.getDate() - 1);
-  savePlants([
-    {
-      id: uid(),
-      name: 'Monstera Deliciosa',
-      location: 'Living room, north corner',
-      interval: 7,
-      last: seedDate1.toISOString().slice(0,10),
-      notes: 'Bright indirect light\nLet top 3cm of soil dry out first'
-    },
-    {
-      id: uid(),
-      name: 'Basil',
-      location: 'Kitchen windowsill',
-      interval: 2,
-      last: seedDate2.toISOString().slice(0,10),
-      notes: 'Keep soil consistently moist\nLikes direct sun'
-    }
-  ]);
-}
+// On first ever load for this household, seed a couple of example plants.
+// After that, subscribe to the shared database so both partners' phones
+// always show the same live list.
+plantsRef.once('value').then(function(snapshot){
+  if (!snapshot.exists()){
+    const seedDate1 = new Date(); seedDate1.setDate(seedDate1.getDate() - 6);
+    const seedDate2 = new Date(); seedDate2.setDate(seedDate2.getDate() - 1);
+    savePlants([
+      {
+        id: uid(),
+        name: 'Monstera Deliciosa',
+        location: 'Living room, north corner',
+        interval: 7,
+        last: seedDate1.toISOString().slice(0,10),
+        notes: 'Bright indirect light\nLet top 3cm of soil dry out first'
+      },
+      {
+        id: uid(),
+        name: 'Basil',
+        location: 'Kitchen windowsill',
+        interval: 2,
+        last: seedDate2.toISOString().slice(0,10),
+        notes: 'Keep soil consistently moist\nLikes direct sun'
+      }
+    ]);
+  }
 
-render();
+  // Live sync: whenever either of you changes anything, both phones re-render.
+  plantsRef.on('value', function(snapshot){
+    plants = snapshot.val() || [];
+    render();
+  });
+});
+
 </script>
 </body>
 </html>
