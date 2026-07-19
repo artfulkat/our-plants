@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Watering Tracker — Our Plant Babies</title>
 <link rel="icon" href="data:,">
+<meta name="theme-color" content="#0B2419">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -595,7 +596,7 @@ function render(){
         <div class="card-actions">
           ${status.justWatered
             ? `<button class="btn-water is-watered" onclick="waterNow('${plant.id}')">${checkIcon}Watered</button>`
-            : status.waterLevel > 50
+            : status.waterLevel > 10
               ? `<button class="btn-water is-disabled" disabled>Water now</button>`
               : `<button class="btn-water" onclick="waterNow('${plant.id}')">Water now</button>`
           }
