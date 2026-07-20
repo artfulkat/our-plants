@@ -575,7 +575,7 @@ function render(){
   }
 
   const withStatus = plants.map(p => ({ plant:p, status:computeStatus(p) }));
-  withStatus.sort((a,b) => a.status.remaining - b.status.remaining);
+  withStatus.sort((a,b) => a.status.waterLevel - b.status.waterLevel);
 
   const overdueCount = withStatus.filter(x => x.status.level === 'overdue').length;
   const soonCount = withStatus.filter(x => x.status.level === 'soon').length;
